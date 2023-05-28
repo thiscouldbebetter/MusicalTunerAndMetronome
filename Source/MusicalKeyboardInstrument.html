@@ -1,0 +1,132 @@
+<html>
+
+<head>
+	<link rel="stylesheet" href="Style.css">
+</head>
+
+<body>
+
+<div id="divUi">
+
+	<h3>Musical Keyboard</h3>
+
+	<p>Click the buttons to play musical notes.</p>
+
+	<div>
+		<button class="white" onclick="buttonPlayNote_Clicked(0)">C</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(1)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(2)">D</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(3)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(4)">E</button>
+		<button class="white" onclick="buttonPlayNote_Clicked(5)">F</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(6)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(7)">G</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(8)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(9)">A</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(10)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(11)">B</button>
+
+		<button class="white" onclick="buttonPlayNote_Clicked(12)">C</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(13)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(14)">D</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(15)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(16)">E</button>
+		<button class="white" onclick="buttonPlayNote_Clicked(17)">F</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(18)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(19)">G</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(20)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(21)">A</button>
+		<button class="black" onclick="buttonPlayNote_Clicked(22)"></button>
+		<button class="white" onclick="buttonPlayNote_Clicked(23)">B</button>
+
+	</div>
+
+</div>
+
+<script type="text/javascript">
+
+function buttonPlayNote_Clicked(pitchIndex)
+{
+	var musicalKeyboard = MusicalKeyboard.Instance();
+	var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
+	musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+}
+
+class MusicalKeyboard
+{
+	constructor()
+	{
+		this.volumeAsFractionOfMax = .1;
+	}
+
+	static Instance()
+	{
+		if (MusicalKeyboard._instance == null)
+		{
+			MusicalKeyboard._instance = new MusicalKeyboard();
+		}
+		return MusicalKeyboard._instance;
+	}
+
+	pitchInHertzForIndex(pitchIndex)
+	{
+		var pitchInHertzForLowA = 110;
+
+		var pitchInHertz = pitchInHertzForLowA;
+
+		var tonesPerOctave = 12;
+
+		var octaveIndex = Math.floor(pitchIndex / tonesPerOctave);
+		for (var i = 0; i < octaveIndex; i++)
+		{
+			pitchInHertz *= 2;
+		}
+
+
+		var pitchOffsetWithinOctave =
+			pitchIndex % tonesPerOctave;
+		var pitchNextMultiplier =
+			Math.pow(2, 1/tonesPerOctave);
+
+		for (var i = 0; i < pitchOffsetWithinOctave; i++)
+		{
+			pitchInHertz *= pitchNextMultiplier;
+		}
+
+		return pitchInHertz;
+	}
+
+	playNoteWithPitchInHertz(pitchInHertz)
+	{
+		var audio = new AudioContext();
+
+		var gain = audio.createGain();
+		gain.connect(audio.destination);
+
+		var offsetInSeconds = 0;
+
+		gain.gain.setValueAtTime
+		(
+			this.volumeAsFractionOfMax, offsetInSeconds
+		);
+
+		var oscillator = audio.createOscillator();
+		// oscillator.type = this.oscillatorTypeName;
+		oscillator.connect(gain);
+
+		oscillator.frequency.setValueAtTime
+		(
+			pitchInHertz, offsetInSeconds
+		);
+
+		var durationInSeconds = .5;
+
+		oscillator.start();
+		oscillator.stop(durationInSeconds);
+	}
+}
+
+</script>
+
+</body>
+</html>
