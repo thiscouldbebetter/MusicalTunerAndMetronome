@@ -4,13 +4,18 @@
 	<link rel="stylesheet" href="Style.css">
 </head>
 
-<body onkeydown="(e) => body_Keydown(e)">
+<body>
 
 <div id="divUi">
 
 	<h3>Musical Keyboard</h3>
 
-	<p>Click the buttons to play musical notes.</p>
+	<p>
+		Click the buttons or press keys to play musical notes. 
+		Click Record/Stop to start recording, play some notes,
+		and click Record/Stop again to stop recording, then click Play
+		to play back the recorded notes.
+	</p>
 
 	<div>
 		<label>Voice:</label>
@@ -33,47 +38,38 @@
 	</div>
 
 	<div>
-		<label>Note Duration in Milliseconds:</label>
-		<input
-			id="inputNoteDurationInMilliseconds"
-			type="number" min="50" step="1" value="500"
-			onchange="inputNoteDurationInMilliseconds_Changed(this)"
-		></input>
-	</div>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(0)">C</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(1)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(2)">D</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(3)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(4)">E</button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(5)">F</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(6)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(7)">G</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(8)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(9)">A</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(10)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(11)">B</button>
 
-	<div>
-		<button class="white" onclick="buttonPlayNote_Clicked(0)">C</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(1)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(2)">D</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(3)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(4)">E</button>
-		<button class="white" onclick="buttonPlayNote_Clicked(5)">F</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(6)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(7)">G</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(8)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(9)">A</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(10)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(11)">B</button>
-
-		<button class="white" onclick="buttonPlayNote_Clicked(12)">C</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(13)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(14)">D</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(15)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(16)">E</button>
-		<button class="white" onclick="buttonPlayNote_Clicked(17)">F</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(18)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(19)">G</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(20)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(21)">A</button>
-		<button class="black" onclick="buttonPlayNote_Clicked(22)"></button>
-		<button class="white" onclick="buttonPlayNote_Clicked(23)">B</button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(12)">C</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(13)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(14)">D</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(15)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(16)">E</button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(17)">F</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(18)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(19)">G</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(20)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(21)">A</button>
+		<button class="black" onmousedown="buttonPlayNote_Clicked(22)"></button>
+		<button class="white" onmousedown="buttonPlayNote_Clicked(23)">B</button>
 	</div>
 
 	<div>
 		<label>Recording:</label>
 		<input id="checkboxIsRecording" type="checkbox" value="false" disabled="true"></input>
-		<button onclick="buttonRecordOrStop_Clicked()">Record/Stop</button>
-		<button onclick="buttonRecordingPlay_Clicked()">Play</button>
+		<button onmousedown="buttonRecordOrStop_Clicked()">Record/Stop</button>
+		<button onmousedown="buttonRecordingPlay_Clicked()">Play</button>
 		<br />
 		<textarea id="textareaRecording" cols="40" rows="16"></textarea>
 	</div>
@@ -83,20 +79,37 @@
 
 // Initialize.
 
-document.body.onkeydown = body_KeyDown;
+var body = document.body;
+body.onkeydown = body_KeyDown;
+body.onkeyup = body_KeyUp;
+body.onmouseup = buttonPlayNote_Released;
 
 // Event handlers.
 
 function body_KeyDown(event)
 {
 	var key = event.key;
-	var musicalKeyboard = MusicalKeyboard.Instance();
-	var pitchIndex = musicalKeyboard.pitchIndexForKey(key);
-	if (pitchIndex != null)
+	var inputTracker = InputTracker.Instance;
+	var isKeyPressed = inputTracker.isKeyPressed(key);
+	if (isKeyPressed == false)
 	{
-		var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
-		musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+		inputTracker.keyPress(key);
+		var musicalKeyboard = MusicalKeyboard.Instance();
+		var pitchIndex = musicalKeyboard.pitchIndexForKey(key);
+		if (pitchIndex != null)
+		{
+			var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
+			musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+		}
 	}
+}
+
+function body_KeyUp(event)
+{
+	var key = event.key;
+	InputTracker.Instance.keyRelease(key);
+	var musicalKeyboard = MusicalKeyboard.Instance();
+	musicalKeyboard.stopNote(); // todo - Polytonicity.
 }
 
 function buttonRecordOrStop_Clicked()
@@ -126,26 +139,38 @@ function buttonRecordingPlay_Clicked()
 
 function buttonPlayNote_Clicked(pitchIndex)
 {
-	var musicalKeyboard = MusicalKeyboard.Instance();
-	var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
-	musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+	if (pitchIndex != null)
+	{
+		var musicalKeyboard = MusicalKeyboard.Instance();
+		var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
+		musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+	}
 }
 
-function inputNoteDurationInMilliseconds_Changed(inputNoteDurationInMilliseconds)
+function buttonPlayNote_Released()
 {
-	var noteDurationInMilliseconds =
-		parseInt(inputNoteDurationInMilliseconds.value);
 	var musicalKeyboard = MusicalKeyboard.Instance();
-	musicalKeyboard.noteDurationInMillisecondsSet(noteDurationInMilliseconds);
+	musicalKeyboard.stopNote();
 }
 
 function inputVolumeAsPercentageOfMax_Changed(inputVolumeAsPercentageOfMax)
 {
+	var volumeAsPercentageOfMaxAsString =
+		inputVolumeAsPercentageOfMax.value;
 	var volumeAsPercentageOfMax =
-		parseInt(inputVolumeAsPercentageOfMax.value);
+		parseInt(volumeAsPercentageOfMaxAsString);
+	if (volumeAsPercentageOfMax < 0)
+	{
+		volumeAsPercentageOfMax = 0;
+	}
+	else if (volumeAsPercentageOfMax > 100)
+	{
+		volumeAsPercentageOfMax = 100;
+	}
+	inputVolumeAsPercentageOfMax.value = volumeAsPercentageOfMax;
 	var volumeAsFractionOfMax = volumeAsPercentageOfMax / 100;
 	var musicalKeyboard = MusicalKeyboard.Instance();
-	musicalKeyboard.volumeAsPercentageOfMaxSet(volumeAsPercentageOfMax);
+	musicalKeyboard.volumeAsFractionOfMaxSet(volumeAsFractionOfMax);
 }
 
 function selectVoiceName_Changed(selectVoiceName)
@@ -156,18 +181,116 @@ function selectVoiceName_Changed(selectVoiceName)
 
 // Classes.
 
+class InputTracker
+{
+	constructor()
+	{
+		this.keysPressed = [];
+	}
+
+	static Instance = new InputTracker();
+
+	isKeyPressed(key)
+	{
+		return (this.keysPressed.indexOf(key) >= 0);
+	}
+
+	keyPress(key)
+	{
+		if (this.keysPressed.indexOf(key) == -1)
+		{
+			this.keysPressed.push(key);
+		}
+	}
+
+	keyRelease(key)
+	{
+		var keyIndex = this.keysPressed.indexOf(key);
+		if (keyIndex >= 0)
+		{
+			this.keysPressed.splice(keyIndex, 1);
+		}
+	}
+}
+
 class MusicalKeyboard
 {
 	constructor
 	(
-		voiceName, volumeAsFractionOfMax, noteDurationInMilliseconds
+		voiceName, volumeAsFractionOfMax
 	)
 	{
 		this.voiceName = voiceName || "Sine";
 		this.volumeAsFractionOfMax = volumeAsFractionOfMax || .1;
-		this.noteDurationInMilliseconds = noteDurationInMilliseconds || 500;
 
-		this.pitchIndicesByKey = new Map
+		this.pitchIndicesByKey = this.pitchIndicesByKeyBuild();
+		this.initialize();
+	}
+
+	static Instance()
+	{
+		if (MusicalKeyboard._instance == null)
+		{
+			MusicalKeyboard._instance = new MusicalKeyboard();
+		}
+		return MusicalKeyboard._instance;
+	}
+
+	initialize()
+	{
+		this.audio = new AudioContext();
+
+		this.gain = this.audio.createGain();
+		this.gain.connect(this.audio.destination);
+
+		this.oscillator = this.audio.createOscillator();
+		this.oscillator.type = this.voiceName.toLowerCase();
+		this.oscillator.connect(this.gain);
+		this.oscillator.start();
+	}
+
+	isRecording()
+	{
+		return (this.recordingStartTime != null);
+	}
+
+	pitchInHertzForIndex(pitchIndex)
+	{
+		var pitchInHertzForLowA = 110;
+
+		var pitchInHertz = pitchInHertzForLowA;
+
+		var tonesPerOctave = 12;
+
+		var octaveIndex = Math.floor(pitchIndex / tonesPerOctave);
+		for (var i = 0; i < octaveIndex; i++)
+		{
+			pitchInHertz *= 2;
+		}
+
+		var pitchOffsetWithinOctave =
+			pitchIndex % tonesPerOctave;
+		var pitchNextMultiplier =
+			Math.pow(2, 1/tonesPerOctave);
+
+		for (var i = 0; i < pitchOffsetWithinOctave; i++)
+		{
+			pitchInHertz *= pitchNextMultiplier;
+		}
+
+		pitchInHertz = Math.round(pitchInHertz);
+
+		return pitchInHertz;
+	}
+
+	pitchIndexForKey(key)
+	{
+		return this.pitchIndicesByKey.get(key);
+	}
+
+	pitchIndicesByKeyBuild()
+	{
+		return new Map
 		([
 			// first octave
 			[ "Z", 3 ], // b
@@ -207,125 +330,62 @@ class MusicalKeyboard
 		]);
 	}
 
-	static Instance()
-	{
-		if (MusicalKeyboard._instance == null)
-		{
-			MusicalKeyboard._instance = new MusicalKeyboard();
-		}
-		return MusicalKeyboard._instance;
-	}
-
-	isPlaying()
-	{
-		return (this.playbackStartTime != null);
-	}
-
-	isRecording()
-	{
-		return (this.recordingStartTime != null);
-	}
-
-	noteDurationInMillisecondsSet(value)
-	{
-		this.noteDurationInMilliseconds = value;
-		return this;
-	}
-
-	pitchInHertzForIndex(pitchIndex)
-	{
-		var pitchInHertzForLowA = 110;
-
-		var pitchInHertz = pitchInHertzForLowA;
-
-		var tonesPerOctave = 12;
-
-		var octaveIndex = Math.floor(pitchIndex / tonesPerOctave);
-		for (var i = 0; i < octaveIndex; i++)
-		{
-			pitchInHertz *= 2;
-		}
-
-		var pitchOffsetWithinOctave =
-			pitchIndex % tonesPerOctave;
-		var pitchNextMultiplier =
-			Math.pow(2, 1/tonesPerOctave);
-
-		for (var i = 0; i < pitchOffsetWithinOctave; i++)
-		{
-			pitchInHertz *= pitchNextMultiplier;
-		}
-
-		pitchInHertz = Math.round(pitchInHertz);
-
-		return pitchInHertz;
-	}
-
-	pitchIndexForKey(key)
-	{
-		return this.pitchIndicesByKey.get(key);
-	}
-
 	playNoteWithPitchInHertz(pitchInHertz)
 	{
-		var audio = new AudioContext();
+		var offsetInSeconds = this.audio.currentTime;
 
-		var gain = audio.createGain();
-		gain.connect(audio.destination);
-
-		var offsetInSeconds = 0;
-
-		gain.gain.setValueAtTime
-		(
-			this.volumeAsFractionOfMax, offsetInSeconds
-		);
-
-		var oscillator = audio.createOscillator();
-		oscillator.type = this.voiceName.toLowerCase();
-		oscillator.connect(gain);
-
-		oscillator.frequency.setValueAtTime
+		this.oscillator.frequency.setValueAtTime
 		(
 			pitchInHertz, offsetInSeconds
 		);
 
-		var durationInSeconds = this.noteDurationInMilliseconds / 1000;
+		this.gain.gain.setValueAtTime
+		(
+			this.volumeAsFractionOfMax, offsetInSeconds
+		);
 
-		oscillator.start();
-		oscillator.stop(durationInSeconds);
-
-		this.recordNoteIfRecording(pitchInHertz);
-	}
-
-	recordNoteIfRecording(pitchInHertz)
-	{
-		if (this.isRecording() )
+		if (this.isRecording())
 		{
 			var now = new Date();
 			var millisecondsSinceRecordingStarted =
 				now - this.recordingStartTime;
-			var note = new Note
+
+			this.noteInProgress = new Note
 			(
 				millisecondsSinceRecordingStarted,
 				pitchInHertz
 			);
-			this.notesRecorded.push(note);
+		}
+	}
 
-			var notesRecordedAsString =
-				this.notesRecorded.map(x => x.toStringForRecording() ).join(";");
-			var d = document;
-			var textareaRecording = d.getElementById("textareaRecording");
-			textareaRecording.value = notesRecordedAsString;
+	recordNoteIfRecording()
+	{
+		if (this.isRecording() )
+		{
+			var note = this.noteInProgress;
+
+			if (note != null)
+			{
+				var now = new Date();
+				var millisecondsSinceRecordingStarted =
+					now - this.recordingStartTime;
+				var durationInMilliseconds =
+					millisecondsSinceRecordingStarted
+					- note.millisecondsSinceRecordingStarted;
+				note.durationInMilliseconds = durationInMilliseconds;
+				this.notesRecorded.push(note);
+
+				var notesRecordedAsString =
+					this.notesRecorded.map(x => x.toStringForRecording() ).join(";");
+				var d = document;
+				var textareaRecording = d.getElementById("textareaRecording");
+				textareaRecording.value = notesRecordedAsString;
+			}
 		}
 	}
 
 	recordingPlay(recordingAsText)
 	{
-		if (this.isPlaying())
-		{
-			return;
-		}
-
 		var d = document;
 		var textareaRecording = d.getElementById("textareaRecording");
 		textareaRecording.value = recordingAsText;
@@ -333,33 +393,40 @@ class MusicalKeyboard
 		var notesAsStrings = recordingAsText.split(";");
 		this.notesRecorded = notesAsStrings.map(x => Note.fromString(x) );
 
-		var instrument = this;
-		var noteIndex = 0;
-		this.playbackStartTime = new Date();
-		var millisecondsPerTick = 20;
+		var playbackStartTimeInSeconds = this.audio.currentTime;
+		var millisecondsPerSecond = 1000;
 
-		this.timerPlayback = setInterval
+		this.notesRecorded.forEach
 		(
-			() =>
+			note =>
 			{
-				var now = new Date();
-				var millisecondsSincePlaybackStarted =
-					now - instrument.playbackStartTime;
-				var noteCurrent = instrument.notesRecorded[noteIndex];
-				if (noteCurrent == null)
-				{
-					instrument.timerPlayback = null;
-					instrument.playbackStartTime = null;
-				}
-				else if (noteCurrent.millisecondsSinceRecordingStarted < millisecondsSincePlaybackStarted)
-				{
-					var pitchInHertz = noteCurrent.pitchInHertz;
-					instrument.playNoteWithPitchInHertz(pitchInHertz);
-					noteIndex++;
-				}
-			},
-			
-			millisecondsPerTick
+				var pitchInHertz = note.pitchInHertz;
+				var noteStartRelativeToRecordingStartInSeconds =
+					note.millisecondsSinceRecordingStarted / millisecondsPerSecond;
+				var noteStartAbsoluteInSeconds =
+					playbackStartTimeInSeconds
+					+ noteStartRelativeToRecordingStartInSeconds;
+				var durationInSeconds =
+					note.durationInMilliseconds / millisecondsPerSecond;
+				var noteEndAbsoluteInSeconds =
+					noteStartAbsoluteInSeconds + durationInSeconds;
+
+				this.oscillator.frequency.setValueAtTime
+				(
+					pitchInHertz, noteStartAbsoluteInSeconds
+				);
+
+				this.gain.gain.setValueAtTime
+				(
+					this.volumeAsFractionOfMax, noteStartAbsoluteInSeconds
+				);
+
+				this.gain.gain.setValueAtTime
+				(
+					0, noteEndAbsoluteInSeconds
+				);
+
+			}
 		);
 	}
 
@@ -374,6 +441,18 @@ class MusicalKeyboard
 			this.recordingStartTime = new Date();
 			this.notesRecorded = [];
 		}
+	}
+
+	stopNote()
+	{
+		var offsetInSeconds = this.audio.currentTime;
+
+		this.gain.gain.setValueAtTime
+		(
+			0, offsetInSeconds
+		);
+
+		this.recordNoteIfRecording();
 	}
 
 	voiceNameSet(value)
@@ -391,10 +470,16 @@ class MusicalKeyboard
 
 class Note
 {
-	constructor(millisecondsSinceRecordingStarted, pitchInHertz)
+	constructor
+	(
+		millisecondsSinceRecordingStarted,
+		pitchInHertz,
+		durationInMilliseconds
+	)
 	{
 		this.millisecondsSinceRecordingStarted = millisecondsSinceRecordingStarted;
 		this.pitchInHertz = pitchInHertz;
+		this.durationInMilliseconds = durationInMilliseconds;
 	}
 
 	// String.
@@ -404,7 +489,13 @@ class Note
 		var parts = stringToParse.split(":");
 		var millisecondsSinceRecordingStarted = parseInt(parts[0]);
 		var pitchInHertz = parseFloat(parts[1]);
-		var note = new Note(millisecondsSinceRecordingStarted, pitchInHertz);
+		var durationInMilliseconds = parseInt(parts[2]);
+		var note = new Note
+		(
+			millisecondsSinceRecordingStarted,
+			pitchInHertz,
+			durationInMilliseconds
+		);
 		return note;
 	}
 
@@ -412,7 +503,8 @@ class Note
 	{
 		var returnValue =
 			this.millisecondsSinceRecordingStarted
-			+ ":" + this.pitchInHertz;
+			+ ":" + this.pitchInHertz
+			+ ":" + this.durationInMilliseconds;
 
 		return returnValue;
 	}
