@@ -71,7 +71,7 @@
 		<button onmousedown="buttonRecordOrStop_Clicked()">Record/Stop</button>
 		<button onmousedown="buttonRecordingPlay_Clicked()">Play</button>
 		<br />
-		<textarea id="textareaRecording" cols="40" rows="16"></textarea>
+		<textarea id="textareaRecording" cols="40" rows="16" disabled="true"></textarea>
 	</div>
 </div>
 
@@ -263,6 +263,11 @@ class Channel
 		);
 
 		this.noteInProgress = null;
+	}
+
+	voiceNameSet(value)
+	{
+		this.oscillator.type = value.toLowerCase();
 	}
 }
 
@@ -565,6 +570,7 @@ class MusicalKeyboard
 	voiceNameSet(value)
 	{
 		this.voiceName = value;
+		this.channels.forEach(x => x.voiceNameSet(value) );
 		return this;
 	}
 
