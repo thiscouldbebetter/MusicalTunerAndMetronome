@@ -88,18 +88,34 @@ body.onmouseup = buttonPlayNote_Released;
 
 function body_KeyDown(event)
 {
-	var key = event.key;
 	var inputTracker = InputTracker.Instance;
+	var key = event.key;
+
+	var musicalKeyboard = MusicalKeyboard.Instance();
+
+	if (key == "Escape")
+	{
+		musicalKeyboard.channelsAllStop();
+	}
+
 	var isKeyPressed = inputTracker.isKeyPressed(key);
 	if (isKeyPressed == false)
 	{
 		inputTracker.keyPress(key);
-		var musicalKeyboard = MusicalKeyboard.Instance();
-		var pitchIndex = musicalKeyboard.pitchIndexForKey(key);
-		if (pitchIndex != null)
+
+		var channelFreeIndex = musicalKeyboard.channelFreeIndex();
+		if (channelFreeIndex != null)
 		{
-			var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
-			musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+			var pitchIndex = musicalKeyboard.pitchIndexForKey(key);
+			if (pitchIndex != null)
+			{
+				var pitchInHertz =
+					musicalKeyboard.pitchInHertzForIndex(pitchIndex);
+				musicalKeyboard.noteWithPitchInHertzPlayOnChannel
+				(
+					pitchInHertz, channelFreeIndex
+				);
+			}
 		}
 	}
 }
@@ -109,7 +125,14 @@ function body_KeyUp(event)
 	var key = event.key;
 	InputTracker.Instance.keyRelease(key);
 	var musicalKeyboard = MusicalKeyboard.Instance();
-	musicalKeyboard.stopNote(); // todo - Polytonicity.
+	var pitchIndex = musicalKeyboard.pitchIndexForKey(key);
+	var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
+	var channels = musicalKeyboard.channels;
+	var channelToStop = channels.find
+	(
+		x => x.noteInProgress != null && x.noteInProgress.pitchInHertz == pitchInHertz
+	);
+	musicalKeyboard.channelStop(channelToStop);
 }
 
 function buttonRecordOrStop_Clicked()
@@ -143,14 +166,17 @@ function buttonPlayNote_Clicked(pitchIndex)
 	{
 		var musicalKeyboard = MusicalKeyboard.Instance();
 		var pitchInHertz = musicalKeyboard.pitchInHertzForIndex(pitchIndex);
-		musicalKeyboard.playNoteWithPitchInHertz(pitchInHertz);
+		var channelIndex = musicalKeyboard.channelIndexForNotesTriggeredByMouse;
+		musicalKeyboard.noteWithPitchInHertzPlayOnChannel(pitchInHertz, channelIndex);
 	}
 }
 
 function buttonPlayNote_Released()
 {
 	var musicalKeyboard = MusicalKeyboard.Instance();
-	musicalKeyboard.stopNote();
+	var channelIndex = musicalKeyboard.channelIndexForNotesTriggeredByMouse;
+	var channelToStop = musicalKeyboard.channels[channelIndex];
+	musicalKeyboard.channelStop(channelToStop);
 }
 
 function inputVolumeAsPercentageOfMax_Changed(inputVolumeAsPercentageOfMax)
@@ -180,6 +206,68 @@ function selectVoiceName_Changed(selectVoiceName)
 }
 
 // Classes.
+
+class Channel
+{
+	constructor(gain, oscillator)
+	{
+		this.gain = gain;
+		this.oscillator = oscillator;
+	}
+
+	static fromAudioContextAndVoiceName(audio, voiceName)
+	{
+		var gain = audio.createGain();
+		gain.gain.setValueAtTime(0, 0);
+		gain.connect(audio.destination);
+
+		var oscillator = audio.createOscillator();
+		oscillator.type = voiceName.toLowerCase();
+		oscillator.connect(gain);
+		oscillator.start();
+
+		return new Channel(gain, oscillator);
+	}
+
+	noteWithPitchInHertzAndVolumeAsFractionStartAndEndAtSeconds
+	(
+		pitchInHertz,
+		volumeAsFractionOfMax,
+		startInSeconds,
+		endInSeconds
+	)
+	{
+		var oscillator = channel.oscillator;
+		var gain = channel.gain;
+
+		oscillator.frequency.setValueAtTime
+		(
+			pitchInHertz, startInSeconds
+		);
+
+		gain.gain.setValueAtTime
+		(
+			volumeAsFractionOfMax, startInSeconds
+		);
+
+		gain.gain.setValueAtTime
+		(
+			0, endInSeconds
+		);
+	}
+
+	stopWithAudioContext(audioContext)
+	{
+		var offsetInSeconds = audioContext.currentTime;
+
+		this.gain.gain.setValueAtTime
+		(
+			0, offsetInSeconds
+		);
+
+		this.noteInProgress = null;
+	}
+}
 
 class InputTracker
 {
@@ -217,12 +305,14 @@ class MusicalKeyboard
 {
 	constructor
 	(
-		voiceName, volumeAsFractionOfMax
+		voiceName, volumeAsFractionOfMax, notesSimultaneousCount
 	)
 	{
 		this.voiceName = voiceName || "Sine";
 		this.volumeAsFractionOfMax = volumeAsFractionOfMax || .1;
+		this.notesSimultaneousCount = notesSimultaneousCount || 12;
 
+		this.channelIndexForNotesTriggeredByMouse = 0;
 		this.pitchIndicesByKey = this.pitchIndicesByKeyBuild();
 		this.initialize();
 	}
@@ -236,17 +326,29 @@ class MusicalKeyboard
 		return MusicalKeyboard._instance;
 	}
 
+	channelsAllStop()
+	{
+		this.channels.forEach(x => x.stopWithAudioContext(this.audio) );
+	}
+
 	initialize()
 	{
 		this.audio = new AudioContext();
 
-		this.gain = this.audio.createGain();
-		this.gain.connect(this.audio.destination);
+		var channels = [];
 
-		this.oscillator = this.audio.createOscillator();
-		this.oscillator.type = this.voiceName.toLowerCase();
-		this.oscillator.connect(this.gain);
-		this.oscillator.start();
+		for (var i = 0; i < this.notesSimultaneousCount; i++)
+		{
+			var channel =
+				Channel.fromAudioContextAndVoiceName
+				(
+					this.audio, this.voiceName
+				);
+
+			channels.push(channel);
+		}
+
+		this.channels = channels;
 	}
 
 	isRecording()
@@ -330,40 +432,65 @@ class MusicalKeyboard
 		]);
 	}
 
-	playNoteWithPitchInHertz(pitchInHertz)
+	channelFreeIndex()
 	{
-		var offsetInSeconds = this.audio.currentTime;
+		var channelFree =
+			this.channels.find(x => x.noteInProgress == null);
+		var channelIndex = (channelFree == null ? null : this.channels.indexOf(channelFree) );
+		return channelIndex;
+	}
 
-		this.oscillator.frequency.setValueAtTime
-		(
-			pitchInHertz, offsetInSeconds
-		);
-
-		this.gain.gain.setValueAtTime
-		(
-			this.volumeAsFractionOfMax, offsetInSeconds
-		);
-
-		if (this.isRecording())
+	channelStop(channelToStop)
+	{
+		if (channelToStop == null)
 		{
+			return;
+		}
+
+
+		this.noteRecordIfRecording(channelToStop.noteInProgress);
+
+		channelToStop.stopWithAudioContext(this.audio);
+	}
+
+	noteWithPitchInHertzPlayOnChannel(pitchInHertz, channelIndex)
+	{
+		if (channelIndex != null)
+		{
+			var channel = this.channels[channelIndex];
+
+			var oscillator = channel.oscillator;
+			var offsetInSeconds = this.audio.currentTime;
+			oscillator.frequency.setValueAtTime
+			(
+				pitchInHertz, offsetInSeconds
+			);
+
+			var gain = channel.gain;
+			gain.gain.setValueAtTime
+			(
+				this.volumeAsFractionOfMax, offsetInSeconds
+			);
+
 			var now = new Date();
 			var millisecondsSinceRecordingStarted =
 				now - this.recordingStartTime;
 
-			this.noteInProgress = new Note
+			var noteInProgress = new Note
 			(
 				millisecondsSinceRecordingStarted,
+				channelIndex,
 				pitchInHertz
 			);
+
+			channel.noteInProgress = noteInProgress;
 		}
 	}
 
-	recordNoteIfRecording()
+	noteRecordIfRecording(note)
 	{
 		if (this.isRecording() )
 		{
-			var note = this.noteInProgress;
-
 			if (note != null)
 			{
 				var now = new Date();
@@ -411,21 +538,16 @@ class MusicalKeyboard
 				var noteEndAbsoluteInSeconds =
 					noteStartAbsoluteInSeconds + durationInSeconds;
 
-				this.oscillator.frequency.setValueAtTime
-				(
-					pitchInHertz, noteStartAbsoluteInSeconds
-				);
+				var channelIndex = note.channelIndex;
+				var channel = this.channels[channelIndex];
 
-				this.gain.gain.setValueAtTime
+				channel.noteWithPitchInHertzAndVolumeAsFractionStartAndEndAtSeconds
 				(
-					this.volumeAsFractionOfMax, noteStartAbsoluteInSeconds
+					pitchInHertz,
+					this.volumeAsFractionOfMax,
+					noteStartAbsoluteInSeconds,
+					noteEndAbsoluteInSeconds
 				);
-
-				this.gain.gain.setValueAtTime
-				(
-					0, noteEndAbsoluteInSeconds
-				);
-
 			}
 		);
 	}
@@ -441,18 +563,6 @@ class MusicalKeyboard
 			this.recordingStartTime = new Date();
 			this.notesRecorded = [];
 		}
-	}
-
-	stopNote()
-	{
-		var offsetInSeconds = this.audio.currentTime;
-
-		this.gain.gain.setValueAtTime
-		(
-			0, offsetInSeconds
-		);
-
-		this.recordNoteIfRecording();
 	}
 
 	voiceNameSet(value)
@@ -473,11 +583,13 @@ class Note
 	constructor
 	(
 		millisecondsSinceRecordingStarted,
+		channelIndex,
 		pitchInHertz,
 		durationInMilliseconds
 	)
 	{
 		this.millisecondsSinceRecordingStarted = millisecondsSinceRecordingStarted;
+		this.channelIndex = channelIndex;
 		this.pitchInHertz = pitchInHertz;
 		this.durationInMilliseconds = durationInMilliseconds;
 	}
@@ -488,11 +600,13 @@ class Note
 	{
 		var parts = stringToParse.split(":");
 		var millisecondsSinceRecordingStarted = parseInt(parts[0]);
-		var pitchInHertz = parseFloat(parts[1]);
-		var durationInMilliseconds = parseInt(parts[2]);
+		var channelIndex = parseInt(parts[1]);
+		var pitchInHertz = parseFloat(parts[2]);
+		var durationInMilliseconds = parseInt(parts[3]);
 		var note = new Note
 		(
 			millisecondsSinceRecordingStarted,
+			channelIndex,
 			pitchInHertz,
 			durationInMilliseconds
 		);
@@ -501,10 +615,15 @@ class Note
 
 	toStringForRecording()
 	{
-		var returnValue =
-			this.millisecondsSinceRecordingStarted
-			+ ":" + this.pitchInHertz
-			+ ":" + this.durationInMilliseconds;
+		var parts =
+		[
+			this.millisecondsSinceRecordingStarted,
+			this.channelIndex,
+			this.pitchInHertz,
+			this.durationInMilliseconds
+		];
+
+		var returnValue = parts.join(":");
 
 		return returnValue;
 	}
