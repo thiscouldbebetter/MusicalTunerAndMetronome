@@ -237,20 +237,17 @@ class Channel
 		endInSeconds
 	)
 	{
-		var oscillator = channel.oscillator;
-		var gain = channel.gain;
-
-		oscillator.frequency.setValueAtTime
+		this.oscillator.frequency.setValueAtTime
 		(
 			pitchInHertz, startInSeconds
 		);
 
-		gain.gain.setValueAtTime
+		this.gain.gain.setValueAtTime
 		(
 			volumeAsFractionOfMax, startInSeconds
 		);
 
-		gain.gain.setValueAtTime
+		this.gain.gain.setValueAtTime
 		(
 			0, endInSeconds
 		);
