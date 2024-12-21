@@ -1,8 +1,6 @@
-MusicalKeyboardInstrument
-=========================
+MusicalTunerAndMetronome
+========================
 
-A simple musical keyboard instrument in JavaScript using AudioContext.
-
-Despite the name, as of this writing only mouse controls are supported.
+A simple tuner and metronome.
 
 <img src="Screenshot.png" />

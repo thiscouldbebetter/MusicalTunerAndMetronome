@@ -1,0 +1,184 @@
+<html>
+
+<body>
+
+<div id="divUi">
+
+	<h3>Musical Tuner and Metronome</h3>
+
+	<p>
+		Select a pitch and click the Play Tone button to play a tone
+		of the selected pitch, or specify a tempo and click Play Tempo
+		to play tones of the specified pitch at the specified tempo.
+	</p>
+
+	<div>
+		<label>Pitch:</label>
+		<select id="selectPitch">
+			<option>E2 (82.41 Hz)</option>
+			<option>A2 (110 Hz)</option>
+			<option>D3 (146.83 Hz)</option>
+			<option>G3 (196 Hz)</option>
+			<option>B3 (246.94 Hz)</option>
+			<option>E4 (329.63 Hz)</option>
+		</select>
+	</div>
+
+	<button onclick="buttonPlayOrStopSingleTone_Clicked()">Play/Stop Single Tone</button>
+
+	<div>
+		<label>Tempo in Beats per Minute:</label>
+		<input
+			id="inputTempoInBeatsPerMinute"
+			type="number"
+			min=30
+			max=180
+			step=1
+			value=90
+		></input>
+	</div>
+
+	<button onclick="buttonPlayOrStopTonesAtTempo_Clicked()">Play/Stop at Tempo</button>
+
+</div>
+
+<script type="text/javascript">
+
+// Event handlers.
+
+function buttonPlayOrStopSingleTone_Clicked(pitchIndex)
+{
+	var d = document;
+	var selectPitch = d.getElementById("selectPitch");
+	var pitchSelectedAsString = selectPitch.value;
+	pitchSelectedAsString =
+		pitchSelectedAsString.split("(")[1].split(" Hz)")[0];
+	var pitchInHertz = parseFloat(pitchSelectedAsString);
+
+	var tunerAndMetronome = TunerAndMetronome.Instance();
+	tunerAndMetronome.toggleToneAtPitchInHertz(pitchInHertz);
+}
+
+function buttonPlayOrStopTonesAtTempo_Clicked()
+{
+	var d = document;
+	var selectPitch = d.getElementById("selectPitch");
+	var pitchSelectedAsString = selectPitch.value;
+	pitchSelectedAsString =
+		pitchSelectedAsString.split("(")[1].split(" Hz)")[0];
+	var pitchInHertz = parseFloat(pitchSelectedAsString);
+
+	var inputTempoInBeatsPerMinute =
+		d.getElementById("inputTempoInBeatsPerMinute");
+	var tempoInBeatsPerMinuteAsString =
+		inputTempoInBeatsPerMinute.value;
+	var tempoInBeatsPerMinute = parseInt(tempoInBeatsPerMinuteAsString);
+
+	var tunerAndMetronome = TunerAndMetronome.Instance();
+	tunerAndMetronome.toggleTonesAtPitchInHertzAndTempoInBeatsPerMinute
+	(
+		pitchInHertz, tempoInBeatsPerMinute
+	)
+}
+
+class TunerAndMetronome
+{
+	static Instance()
+	{
+		if (this._instance == null)
+		{
+			this._instance = new TunerAndMetronome();
+		}
+		return this._instance;
+	}
+
+	toggleToneAtPitchInHertz(pitchInHertz)
+	{
+		if (this.audioContext != null)
+		{
+			this.audioContext.close();
+			this.audioContext = null;
+		}
+		else
+		{
+			var voiceName = "sine"; // todo
+
+			var volumeAsFractionOfMax = 0.1; // todo
+			var volumeSilence = 0;
+
+			var noteDurationInSeconds = 2; // todo
+
+			this.audioContext = new AudioContext();
+
+			var gain = this.audioContext.createGain();
+			gain.gain.setValueAtTime(volumeAsFractionOfMax, 0);
+			gain.connect(this.audioContext.destination);
+
+			var oscillator = this.audioContext.createOscillator();
+			oscillator.start();
+			oscillator.type = voiceName;
+			oscillator.connect(gain);
+
+			oscillator.frequency.setValueAtTime
+			(
+				pitchInHertz, 0
+			);
+		}
+	}
+
+	toggleTonesAtPitchInHertzAndTempoInBeatsPerMinute
+	(
+		pitchInHertz, tempoInBeatsPerMinute
+	)
+	{
+		if (this.audioContext != null)
+		{
+			this.audioContext.close();
+			this.audioContext = null;
+		}
+		else
+		{
+			var voiceName = "sine"; // todo
+
+			var volumeAsFractionOfMax = 0.1; // todo
+			var volumeSilence = 0;
+
+			var noteDurationInSeconds = 2; // todo
+
+			this.audioContext = new AudioContext();
+
+			var gain = this.audioContext.createGain();
+
+			var secondsPerMinute = 60;
+			var beatsPerSecond = tempoInBeatsPerMinute / secondsPerMinute;
+			var secondsPerBeat = 1 / beatsPerSecond;
+			var durationInMinutes = 60; // hack
+			var beatCount = durationInMinutes * secondsPerMinute / secondsPerBeat;
+			var noteDurationInSeconds = .25;
+			for (var i = 0; i < beatCount; i++)
+			{
+				var timeSinceStartInSeconds = i * secondsPerBeat;
+				gain.gain.setValueAtTime(volumeAsFractionOfMax, timeSinceStartInSeconds);
+				gain.gain.setValueAtTime(0, timeSinceStartInSeconds + noteDurationInSeconds);
+			}
+			gain.connect(this.audioContext.destination);
+
+			var oscillator = this.audioContext.createOscillator();
+			oscillator.start();
+			oscillator.type = voiceName;
+			oscillator.connect(gain);
+
+			oscillator.frequency.setValueAtTime
+			(
+				pitchInHertz, 0
+			);
+		}
+	}
+
+}
+
+
+</script>
+
+</body>
+</html>
